@@ -72,71 +72,63 @@ print_not_exist:
 # load argument n in $a0, return value in $v0.
 .text
 mod_inverse:
-    # prologue
-    addi $sp, $sp, -32
-    sw $ra, 28($sp)
-    sw $s0, 24($sp)  # a
-    sw $s1, 20($sp)  # b
-    sw $s2, 16($sp)  # b0
-    sw $s3, 12($sp)  # x0
-    sw $s4, 8($sp)   # x1
-    sw $s5, 4($sp)   # q
+    # prologue - save only $a0 and $a1
+    addi $sp, $sp, -12
+    sw $ra, 8($sp)
+    sw $a0, 4($sp)
+    sw $a1, 0($sp)
 
-    move $s0, $a0    # a
-    move $s1, $a1    # b
-    move $s2, $a1    # b0 = b
-    li $s3, 0        # x0 = 0
-    li $s4, 1        # x1 = 1
+    move $t0, $a0    # a
+    move $t1, $a1    # b
+    li   $t2, 0      # x0
+    li   $t3, 1      # x1
 
-    li $t0, 1
-    beq $s1, $t0, inv_is_1
+    li   $t5, 1
+    beq  $t1, $t5, inverse_is_1
 
 mod_loop:
-    ble $s0, 1, done_inverse  # while a > 1
+    ble  $t0, 1, done_inverse  # while a > 1
 
-    div $s0, $s1
-    mflo $s5     # q = a / b
-    mfhi $t1     # a % b
+    div  $t0, $t1
+    mflo $t6       # q = a / b
+    mfhi $t7       # a % b
 
-    move $t2, $s1   # t = b
-    move $s1, $t1   # b = a % b
-    move $s0, $t2   # a = t
+    move $t8, $t1  # temp = b
+    move $t1, $t7  # b = a % b
+    move $t0, $t8  # a = temp
 
-    move $t2, $s3   # t = x0
-    mul $t3, $s5, $s3  # q * x0
-    sub $s3, $s4, $t3  # x0 = x1 - q*x0
-    move $s4, $t2      # x1 = t
+    move $t8, $t2         # temp = x0
+    mul  $t9, $t6, $t2    # q * x0
+    sub  $t2, $t3, $t9    # x0 = x1 - q*x0
+    move $t3, $t8         # x1 = temp
 
     j mod_loop
 
+#gcd(a, b) ≠ 1
 done_inverse:
-    li $t0, 1
-    bne $s0, $t0, no_inverse  # if (a != 1) return -1
+    li   $t5, 1
+    bne  $t0, $t5, no_inverse
 
-    # if x1 < 0, x1 += b0
-    bltz $s4, fix_negative
-    move $v0, $s4
+    # if x1 < 0, x1 = x1 + b
+    bltz $t3, fix_negative
+    move $v0, $t3
     j restore
 
+# x1 = x1 + b
 fix_negative:
-    add $s4, $s4, $s2
-    move $v0, $s4
+    add  $v0, $t3, $a1
     j restore
 
-inv_is_1:
+inverse_is_1:
     li $v0, 1
     j restore
 
-no_inverse:
+no_inverse: # Does not exists
     li $v0, -1
 
 restore:
-    lw $ra, 28($sp)
-    lw $s0, 24($sp)
-    lw $s1, 20($sp)
-    lw $s2, 16($sp)
-    lw $s3, 12($sp)
-    lw $s4, 8($sp)
-    lw $s5, 4($sp)
-    addi $sp, $sp, 32
+    lw $ra, 8($sp)
+    lw $a0, 4($sp)
+    lw $a1, 0($sp)
+    addi $sp, $sp, 12
     jr $ra
