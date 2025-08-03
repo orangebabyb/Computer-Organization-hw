@@ -1,0 +1,62 @@
+//Student ID:A133634
+`timescale 1ns/1ps
+`include "MUX_2to1.v"
+`include "MUX_4to1.v"
+
+module ALU_1bit(
+	input				src1,       //1 bit source 1  (input)
+	input				src2,       //1 bit source 2  (input)
+	input				less,       //1 bit less      (input)
+	input 				Ainvert,    //1 bit A_invert  (input)
+	input				Binvert,    //1 bit B_invert  (input)
+	input 				cin,        //1 bit carry in  (input)
+	input 	    [2-1:0] operation,  //2 bit operation (input)
+	output reg          result,     //1 bit result    (output)
+	output reg          cout        //1 bit carry out (output)
+	);
+		
+/* Write down your code HERE */
+    wire A, B;
+    wire and_, or_, sum_;
+    wire out;
+
+    // MUX_2to1 for A, B
+    MUX_2to1 A_mux (
+        .src1(src1),
+        .src2(~src1),
+        .select(Ainvert),
+        .result(A)
+    );
+
+    MUX_2to1 B_mux (
+        .src1(src2),
+        .src2(~src2),
+        .select(Binvert),
+        .result(B)
+    );
+
+    // and, or, sum
+    assign and_ = A & B;
+    assign or_  = A | B;
+    assign sum_ = A ^ B ^ cin;
+
+    //  MUX_4to1
+    MUX_4to1 result_mux (
+        .src1(or_),
+        .src2(and_),
+        .src3(sum_),
+        .src4(less),
+        .select(operation),
+        .result(out)
+    );
+
+    always @* 
+	begin
+        result = out;  // from MUX_4to1
+        if (operation == 2'b10)
+            cout = (A & B) | (A & cin) | (B & cin); // carry out only for add operation
+        else
+            cout = 0;
+    end
+
+endmodule
